@@ -579,7 +579,7 @@ if submitted:
         "cb_person_default_on_file": default_history,
     }
 
-  try:
+    try:
         prediction, default_probability, feature_contributions = predict_risk(
             model_values, model, scaler, model_columns
         )
