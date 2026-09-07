@@ -670,4 +670,11 @@ if submitted:
 
 if not submitted and st.session_state.page == "main" and "last_assessment" in st.session_state:
     render_assessment_result(*st.session_state.last_assessment)
-
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
