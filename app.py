@@ -5,7 +5,7 @@ import os
 import joblib
 import pandas as pd
 import streamlit as st
-from sqlalchemy import create_engine, text
+
 
 
 st.set_page_config(
@@ -17,15 +17,6 @@ if "page" not in st.session_state:
     st.session_state.page = "main"
 
 
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "credit_model.pkl"
-SCALER_PATH = BASE_DIR / "scaler.pkl"
-COLUMNS_PATH = BASE_DIR / "model_columns.pkl"
-METRICS_PATH = BASE_DIR / "model_metrics.json"
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "mysql+pymysql://root:NgocKhanh%401802@localhost:3306/final project",
-)
 
 CATEGORICAL_COLUMNS = [
     "person_home_ownership",
