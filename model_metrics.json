@@ -1,0 +1,21 @@
+{
+  "model": "LogisticRegression(class_weight='balanced')",
+  "features": [
+    "person_age",
+    "person_income",
+    "person_home_ownership",
+    "person_emp_length",
+    "loan_intent",
+    "loan_amnt",
+    "loan_percent_income",
+    "cb_person_default_on_file"
+  ],
+  "rows": 31895,
+  "positive_rate": 0.21921931337200187,
+  "accuracy": 0.7447875842608559,
+  "balanced_accuracy": 0.7357282422849173,
+  "precision": 0.4487065120428189,
+  "recall": 0.7195994277539342,
+  "f1": 0.5527472527472528,
+  "roc_auc": 0.8109097115534023
+}
