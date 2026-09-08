@@ -5,8 +5,6 @@ import os
 import joblib
 import pandas as pd
 import streamlit as st
-from sqlalchemy import create_engine, text
-
 
 st.set_page_config(
     page_title="Cổng thông tin tra cứu hạn mức và phê duyệt khoản vay",
@@ -16,16 +14,11 @@ st.set_page_config(
 if "page" not in st.session_state:
     st.session_state.page = "main"
 
-
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "credit_model.pkl"
 SCALER_PATH = BASE_DIR / "scaler.pkl"
 COLUMNS_PATH = BASE_DIR / "model_columns.pkl"
 METRICS_PATH = BASE_DIR / "model_metrics.json"
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "mysql+pymysql://root:NgocKhanh%401802@localhost:3306/final project",
-)
 
 CATEGORICAL_COLUMNS = [
     "person_home_ownership",
@@ -126,7 +119,6 @@ EMPLOYMENT_BANDS = {
     "Trên 20 năm": 25,
 }
 
-
 NUMBER_WORDS = (
     "không",
     "một",
@@ -139,7 +131,6 @@ NUMBER_WORDS = (
     "tám",
     "chín",
 )
-
 
 def _read_three_digits(number: int, full: bool = False) -> str:
     hundreds, remainder = divmod(number, 100)
@@ -160,7 +151,6 @@ def _read_three_digits(number: int, full: bool = False) -> str:
     elif ones:
         words.append(NUMBER_WORDS[ones])
     return " ".join(words)
-
 
 def number_to_vietnamese_words(amount: float) -> str:
     """Convert a non-negative USD amount to Vietnamese words for display."""
@@ -186,7 +176,6 @@ def number_to_vietnamese_words(amount: float) -> str:
             words.append(group_names[index])
     return " ".join(words).capitalize() + " đô la Mỹ"
 
-
 @st.cache_resource(show_spinner=False)
 def load_artifacts():
     """Load the model artifacts created by the training notebook."""
@@ -206,65 +195,6 @@ def load_artifacts():
         joblib.load(COLUMNS_PATH),
         json.loads(METRICS_PATH.read_text(encoding="utf-8")),
     )
-
-
-@st.cache_resource(show_spinner=False)
-def get_database_engine():
-    return create_engine(DATABASE_URL, pool_pre_ping=True)
-
-
-def save_loan_application(
-    values: dict,
-    prediction: int,
-    risk_probability: float,
-) -> int:
-    """Persist one submitted assessment without modifying training tables."""
-    create_table_query = text(
-        """
-        CREATE TABLE IF NOT EXISTS loan_applications (
-            application_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            person_age INT NOT NULL,
-            person_income DECIMAL(14, 2) NOT NULL,
-            person_home_ownership VARCHAR(20) NOT NULL,
-            person_emp_length DECIMAL(5, 2) NOT NULL,
-            loan_intent VARCHAR(30) NOT NULL,
-            loan_amnt DECIMAL(14, 2) NOT NULL,
-            loan_percent_income DECIMAL(8, 5) NOT NULL,
-            cb_person_default_on_file CHAR(1) NOT NULL,
-            predicted_status TINYINT NOT NULL,
-            risk_probability DECIMAL(8, 6) NOT NULL
-        )
-        """
-    )
-    insert_query = text(
-        """
-        INSERT INTO loan_applications (
-            person_age, person_income, person_home_ownership,
-            person_emp_length, loan_intent, loan_amnt,
-            loan_percent_income, cb_person_default_on_file,
-            predicted_status, risk_probability
-        ) VALUES (
-            :person_age, :person_income, :person_home_ownership,
-            :person_emp_length, :loan_intent, :loan_amnt,
-            :loan_percent_income, :cb_person_default_on_file,
-            :predicted_status, :risk_probability
-        )
-        """
-    )
-    parameters = {
-        **values,
-        "predicted_status": prediction,
-        "risk_probability": risk_probability,
-    }
-    with get_database_engine().begin() as connection:
-        connection.execute(create_table_query)
-        result = connection.execute(insert_query, parameters)
-        application_id = result.lastrowid
-    if application_id is None:
-        raise RuntimeError("Không nhận được mã hồ sơ từ MySQL.")
-    return int(application_id)
-
 
 def prepare_features(values: dict, model_columns) -> pd.DataFrame:
     """Build one manually encoded row using the persisted training schema."""
@@ -295,7 +225,6 @@ def prepare_features(values: dict, model_columns) -> pd.DataFrame:
 
     return features
 
-
 def predict_risk(values: dict, model, scaler, model_columns) -> tuple[int, float, dict]:
     features = prepare_features(values, model_columns)
     scaled_features = scaler.transform(features)
@@ -309,7 +238,6 @@ def predict_risk(values: dict, model, scaler, model_columns) -> tuple[int, float
         if abs(contribution) >= 0.05
     }
     return prediction, float(probabilities[default_index]), feature_contributions
-
 
 st.markdown(
     """
@@ -352,7 +280,6 @@ st.markdown(
 def navigate_to(page: str) -> None:
     st.session_state.page = page
 
-
 FEATURE_LABELS = {
     "person_age": "Độ tuổi",
     "person_income": "Thu nhập",
@@ -372,7 +299,6 @@ FEATURE_LABELS = {
     "cb_person_default_on_file_N": "Không có lịch sử nợ xấu",
     "cb_person_default_on_file_Y": "Có lịch sử nợ xấu",
 }
-
 
 def render_assessment_result(
     prediction: int,
@@ -459,7 +385,6 @@ def render_assessment_result(
             navigate_to("contact_hotline")
             st.rerun()
         st.write("Liên hệ kênh chính thức của ngân hàng để được đánh giá hồ sơ chi tiết và bảo mật.")
-
 
 nav_left, nav_center, nav_right = st.columns([1.2, 1.4, 1.2])
 with nav_left:
@@ -647,18 +572,12 @@ if submitted:
         prediction, default_probability, feature_contributions = predict_risk(
             model_values, model, scaler, model_columns
         )
-        application_id = save_loan_application(
-            model_values,
-            prediction,
-            default_probability,
-        )
         st.session_state.last_assessment = (
             prediction,
             default_probability,
             feature_contributions,
             model_metrics,
         )
-        st.success(f"Đã lưu hồ sơ tra cứu vào hệ thống. Mã hồ sơ: #{application_id}")
         render_assessment_result(
             prediction,
             default_probability,
@@ -670,4 +589,3 @@ if submitted:
 
 if not submitted and st.session_state.page == "main" and "last_assessment" in st.session_state:
     render_assessment_result(*st.session_state.last_assessment)
-
